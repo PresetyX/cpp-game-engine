@@ -29,7 +29,7 @@ rendering between the previous and current simulation state.
   drag) cannot cause a runaway catch-up loop ("spiral of death"); the simulation just slows down.
 - Keeping the clock out of the class is what makes it deterministic and unit-testable.
 
-### Events
+### Events (core)
 `EventBus` is a typed bus keyed by `std::type_index`.
 
 - `publish(e)` dispatches immediately; `enqueue(e)` + `flush()` defers delivery (events enqueued
@@ -37,3 +37,50 @@ rendering between the previous and current simulation state.
 - Handlers may unsubscribe during dispatch (takes effect immediately, storage is compacted after
   the outermost dispatch). Handlers added during dispatch only receive later events.
 - Single-threaded by design; no locking.
+
+## ECS
+
+### Entities
+`Entity` is `{uint32_t index, uint32_t generation}` (8 bytes). `EntityPool` keeps one slot per
+index (`generation`, `alive`) and a LIFO free list. `destroy()` bumps the slot generation, so a
+stale handle to a reused index fails `alive()` and every component lookup. A slot whose
+generation reaches `UINT32_MAX` is retired instead of reused (this branch is not covered by a
+test: it would need 2^32 create/destroy cycles on one slot). A packed 32-bit handle (20/12 bits)
+was rejected because 4096 reuses would wrap the generation and revive stale handles.
+
+### Storage: one sparse set per component type
+Each `SparseSet<T>` has `sparse` (entity index -> dense position), `dense` (entities) and
+`values` (components). Insert, remove and lookup are O(1); removal is swap-and-pop, so components
+stay contiguous and iteration order is unspecified. Dense entries store the full handle, so
+lookups also check the generation. `Registry` keys pools by `std::type_index` (same pattern as
+`EventBus`); `add`, `get` and `has` pay one hash lookup, while a `View` caches the pool pointers.
+
+Why sparse sets instead of archetypes: much simpler (no table moves when a component is added or
+removed), add/remove are O(1), and iterating a single component is a linear scan. Trade-off:
+multi-component views do a membership check per entity of the smallest pool instead of scanning
+perfectly packed tables, and the components of one entity are not adjacent in memory.
+
+### Views
+`registry.view<A, const B>()` iterates the smallest pool (chosen when the view is built)
+backwards and yields entities that have all the components; `each(fn)` accepts
+`fn(Entity, A&, const B&)` or `fn(A&, const B&)`. A const registry yields read-only views.
+Component types in a view must be distinct. A component type that was never added gives an empty
+view. Views hold raw pool pointers: build them right before iterating.
+
+During iteration it is allowed to modify component values, create entities (they are not
+visited), add or remove components of, or destroy, the *current* entity, and add components of
+types outside the view. Changing the viewed pools for *other* entities is memory-safe but may
+skip or repeat entities: defer those changes until after the loop. Component references are
+invalidated by any add or remove on the same pool. Single-threaded.
+
+### Error handling
+`Registry::add` on a dead entity throws `std::invalid_argument`. `try_get` returns null, and
+`destroy`/`remove`/`has` on dead entities return false. `get` (registry, sparse set and view) is
+unchecked in release builds; it only has an `assert`.
+
+### Known limitations
+- The sparse array is not paged: 4 bytes per entity index per component type, sized by the
+  highest index used.
+- No component groups, sorting, deferred command buffer or add/remove events.
+- Components must be move constructible and move assignable; wrap `bool` in a struct.
+- Measured numbers live in `docs/benchmarks.md`; nothing beyond them is claimed.

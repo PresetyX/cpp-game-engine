@@ -16,6 +16,7 @@ endif()
 
 option(ENGINE_BUILD_TESTS "Build unit tests" ON)
 option(ENGINE_BUILD_SAMPLES "Build sample applications" OFF)
+option(ENGINE_BUILD_BENCHMARKS "Build benchmarks (not run by ctest)" OFF)
 option(ENGINE_WARNINGS_AS_ERRORS "Treat warnings as errors in engine targets" ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -27,6 +28,10 @@ add_subdirectory(engine)
 if(ENGINE_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+endif()
+
+if(ENGINE_BUILD_BENCHMARKS)
+    add_subdirectory(benchmarks)
 endif()
 
 if(ENGINE_BUILD_SAMPLES)

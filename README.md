@@ -4,8 +4,9 @@
 
 A C++17 / OpenGL 3.3 game engine, built step by step as a portfolio project.
 
-**Status: early development.** At the moment the repository only contains the build
-system, CI and an empty `core` library. No engine features are implemented yet.
+**Status: early development.** Implemented and unit-tested so far: a logger, a frame timer,
+a fixed-timestep accumulator with render interpolation, and a typed event bus (`engine/core`).
+There is no rendering, ECS, physics or asset code yet.
 
 ## Build and test
 
@@ -21,7 +22,7 @@ ctest --test-dir build --output-on-failure
 ## Roadmap
 
 - [x] 1. Project skeleton and CI
-- [ ] 2. Core (logger, fixed-timestep loop, events)
+- [x] 2. Core (logger, fixed-timestep loop, events; simple allocators still pending)
 - [ ] 3. ECS
 - [ ] 4. Math and physics
 - [ ] 5. Assets

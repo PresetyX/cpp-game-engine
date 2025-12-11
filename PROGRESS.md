@@ -5,6 +5,16 @@
 - [x] 2. Core: logger, clock/FrameTimer, FixedTimestep, EventBus (31 tests, MSVC Debug+Release)
 - [x] 3. ECS: EntityPool (generational ids), SparseSet, Registry, View + benchmark
   (78 tests total, MSVC Debug+Release; design by the `arquiteto` agent)
+- [ ] 4. Math and 3D physics (plan by `arquiteto`)
+  - [x] 4a. GLM 1.0.1 + `engine_math` (`Transform`, `PreviousTransform`, `interpolate`, `Aabb`);
+    94 tests total, MSVC Debug+Release
+  - [x] 4b. `engine_physics`: `Collider`, `RigidBody`, `store_previous_transforms`,
+    `integrate_bodies` (gravity, forces, damping, semi-implicit Euler); 106 tests total, MSVC
+    Debug+Release
+  - [ ] 4c. Narrowphase (sphere-sphere, box-box, sphere-box)
+  - [ ] 4d. Broadphase sweep-and-prune (vs brute force in seeded random scenes)
+  - [ ] 4e. Solver (sequential impulses, restitution, Coulomb friction) + `PhysicsWorld`
+  - [ ] 4f. Benchmark (1k/5k bodies) + docs
 
 ## Decisions
 - Only GoogleTest is fetched in step 1; GLFW/glad/GLM/stb_image/spdlog are added in the steps
@@ -20,6 +30,11 @@
   is safe; `ENGINE_BUILD_BENCHMARKS` (OFF by default, built but not run in CI). Details in
   `docs/architecture.md`. Measured on Ryzen 7 9800X3D / MSVC Release: ~3.5 ns/entity for the
   Position+Velocity update, see `docs/benchmarks.md`.
+- Step 4 (decided with the user): sample is 3D, so physics is 3D translation-only with sphere +
+  AABB shapes; GLM is used; simple Coulomb friction (one coefficient per collider); no events,
+  `contacts()` per step only. Static body = entity with `Collider` and no `RigidBody`. GLM include
+  dirs are marked SYSTEM in `cmake/Dependencies.cmake`; `engine_math` is an INTERFACE library, so
+  `engine_set_warnings` is not applied to it (the headers are compiled with warnings via tests).
 
 ## Commands
 Linux:
@@ -33,7 +48,7 @@ cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug && cmake --build build && ctest
 
 ## Pending
 - Simple allocators (listed under `core/` in the target structure) are not implemented yet.
-- Linux CI (GCC/Clang) has not run yet; commits are local until pushed.
+- Linux CI (GCC/Clang) has not run yet for steps 4a/4b; check the Actions result after the push.
 - Generation-exhaustion slot retirement in `EntityPool` is untested (needs 2^32 cycles).
 - Benchmark was run on Windows/MSVC only; Linux numbers not measured.
-- Next: step 4 (math and physics), to be delegated to the `arquiteto` agent.
+- Next: step 4c.

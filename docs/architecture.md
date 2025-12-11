@@ -84,3 +84,32 @@ unchecked in release builds; it only has an `assert`.
 - No component groups, sorting, deferred command buffer or add/remove events.
 - Components must be move constructible and move assignable; wrap `bool` in a struct.
 - Measured numbers live in `docs/benchmarks.md`; nothing beyond them is claimed.
+
+## Math
+
+`engine_math` is a header-only INTERFACE library over GLM 1.0.1 (core and gtc headers only,
+included through `engine/math/glm.hpp`). `Transform` holds `vec3 position`, `quat rotation`,
+`vec3 scale`; `to_matrix()` composes T * R * S. `PreviousTransform` stores the transform of the
+previous fixed step and `interpolate(prev, curr, alpha)` (lerp for position and scale, slerp for
+rotation) is what rendering uses with `FixedTimestep::alpha()`. `Aabb` has `overlaps` (touching
+counts, for the broadphase) and `contains`.
+
+## Physics
+
+`engine_physics` (static library, depends on `engine_ecs` and `engine_math`). Physics is 3D,
+translation only: rotation and `Transform::scale` are never read or written by it.
+
+Components (`engine/physics/components.hpp`):
+- `Collider`: `Sphere` (radius) or `Box` (half extents, axis-aligned in world space), plus
+  `friction` (Coulomb coefficient) and `restitution`. Dimensions come from the collider, not
+  from `Transform::scale`.
+- `RigidBody`: `velocity`, accumulated `force`, `inverse_mass`, `linear_damping`,
+  `gravity_scale`. An entity with a `Collider` and no `RigidBody` is static. `inverse_mass == 0`
+  is kinematic: no gravity or forces, still moves with its velocity, infinite mass for the solver.
+
+Integration (`engine/physics/integrate.hpp`), called once per fixed step in this order:
+1. `store_previous_transforms(registry)` copies `Transform` into `PreviousTransform` (only for
+   entities that have both; add `PreviousTransform` to anything that must be interpolated).
+2. `integrate_bodies(registry, dt, gravity)`: semi-implicit Euler, `v += a*dt` first, then
+   `x += v*dt` with the new `v`. Damping is `v *= 1/(1 + c*dt)`, which stays stable for any `dt`.
+   `force` is cleared after each step, so forces must be re-applied every step.

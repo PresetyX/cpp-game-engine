@@ -113,3 +113,24 @@ Integration (`engine/physics/integrate.hpp`), called once per fixed step in this
 2. `integrate_bodies(registry, dt, gravity)`: semi-implicit Euler, `v += a*dt` first, then
    `x += v*dt` with the new `v`. Damping is `v *= 1/(1 + c*dt)`, which stays stable for any `dt`.
    `force` is cleared after each step, so forces must be re-applied every step.
+
+### Narrowphase (`engine/physics/narrowphase.hpp`)
+Pure functions (no Registry) returning `std::optional<Contact>`: `collide_sphere_sphere`,
+`collide_sphere_box`, `collide_box_box` and `collide(Collider, pos, Collider, pos)`, which
+dispatches on `ShapeType` (Box-Sphere is Sphere-Box with the normal flipped).
+
+- `Contact { normal, depth, point }`: `normal` is unit length and points from A to B (the solver
+  pushes B along `+normal`, A along `-normal`); `depth > 0` always; `point` is the midpoint
+  between the deepest point of A inside B and the surface of B along `-normal`.
+- Exact touching (zero penetration) is not a contact: no epsilon, tests use `>=`/`<=`. The
+  broadphase accepts touching AABBs; the narrowphase discards them.
+- Sphere-sphere: coincident centers use normal `+Y`, `depth = ra + rb`.
+- Sphere-box: center outside uses the closest point on the box. Center inside or exactly on the
+  surface leaves through the nearest face (order x-, x+, y-, y+, z-, z+; first wins ties), with
+  `depth = r + distance_to_face`; continuous with the outside case (center on a face gives
+  `depth = r`).
+- Box-box: axis of least overlap (ties x < y < z); sign of the center delta gives the normal
+  (`+` when the delta is 0); `point` is the center of the intersection box.
+- A/B symmetry: swapping gives the same `depth` and `point` with the normal negated. Degenerate
+  cases (coincident centers, zero delta on the chosen axis) give `+axis` in both orders, so the
+  broadphase (4d) must emit each pair once, in a stable order.

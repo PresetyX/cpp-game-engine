@@ -11,7 +11,8 @@
   - [x] 4b. `engine_physics`: `Collider`, `RigidBody`, `store_previous_transforms`,
     `integrate_bodies` (gravity, forces, damping, semi-implicit Euler); 106 tests total, MSVC
     Debug+Release
-  - [ ] 4c. Narrowphase (sphere-sphere, box-box, sphere-box)
+  - [x] 4c. Narrowphase: `Contact`, `collide_sphere_sphere/sphere_box/box_box`, `collide`
+    (design by `arquiteto`); 138 tests total, MSVC Debug+Release
   - [ ] 4d. Broadphase sweep-and-prune (vs brute force in seeded random scenes)
   - [ ] 4e. Solver (sequential impulses, restitution, Coulomb friction) + `PhysicsWorld`
   - [ ] 4f. Benchmark (1k/5k bodies) + docs
@@ -48,7 +49,9 @@ cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug && cmake --build build && ctest
 
 ## Pending
 - Simple allocators (listed under `core/` in the target structure) are not implemented yet.
-- Linux CI (GCC/Clang) has not run yet for steps 4a/4b; check the Actions result after the push.
+- Linux CI (GCC/Clang) has not run yet for steps 4a/4b/4c; check the Actions result after the push.
 - Generation-exhaustion slot retirement in `EntityPool` is untested (needs 2^32 cycles).
 - Benchmark was run on Windows/MSVC only; Linux numbers not measured.
-- Next: step 4c.
+- The 4d broadphase must emit each pair once in a stable order (degenerate narrowphase cases are
+  not antisymmetric, see `docs/architecture.md`).
+- Next: step 4d.

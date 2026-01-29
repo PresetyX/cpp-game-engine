@@ -1,5 +1,6 @@
 add_library(engine_physics STATIC
-    src/integrate.cpp)
+    src/integrate.cpp
+    src/narrowphase.cpp)
 add_library(engine::physics ALIAS engine_physics)
 
 target_include_directories(engine_physics PUBLIC include)

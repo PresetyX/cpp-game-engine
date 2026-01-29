@@ -134,3 +134,15 @@ dispatches on `ShapeType` (Box-Sphere is Sphere-Box with the normal flipped).
 - A/B symmetry: swapping gives the same `depth` and `point` with the normal negated. Degenerate
   cases (coincident centers, zero delta on the chosen axis) give `+axis` in both orders, so the
   broadphase (4d) must emit each pair once, in a stable order.
+
+### Broadphase
+
+- `sweep_and_prune` sorts proxies by (min.x, entity key), then scans forward while
+  `min.x <= max.x` of the current proxy and confirms with the full 3-axis `overlaps` (touching
+  counts). Fixed x axis; the result never depends on the axis.
+- Each pair is emitted once, oriented (lower key, higher key) with key = (index, generation), and
+  the output is sorted lexicographically. The result is identical for any input permutation, which
+  matters because degenerate narrowphase cases are not antisymmetric.
+- `brute_force_pairs` is the O(n^2) reference with the same contract (tests, 4f benchmark).
+- `skip_static_pairs` drops pairs where both proxies are static (default off).
+- Preconditions: unique entities, no NaN bounds (Debug asserts; Release ignores NaN proxies).

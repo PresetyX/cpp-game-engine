@@ -10,6 +10,7 @@ add_executable(engine_tests
     ecs/view_test.cpp
     math/aabb_test.cpp
     math/transform_test.cpp
+    physics/broadphase_test.cpp
     physics/integrate_test.cpp
     physics/narrowphase_test.cpp)
 target_link_libraries(engine_tests PRIVATE engine::core engine::ecs engine::math engine::physics GTest::gtest_main)

@@ -1,4 +1,5 @@
 add_library(engine_physics STATIC
+    src/broadphase.cpp
     src/integrate.cpp
     src/narrowphase.cpp)
 add_library(engine::physics ALIAS engine_physics)

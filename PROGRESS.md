@@ -13,7 +13,8 @@
     Debug+Release
   - [x] 4c. Narrowphase: `Contact`, `collide_sphere_sphere/sphere_box/box_box`, `collide`
     (design by `arquiteto`); 138 tests total, MSVC Debug+Release
-  - [ ] 4d. Broadphase sweep-and-prune (vs brute force in seeded random scenes)
+  - [x] 4d. Broadphase sweep-and-prune (`sweep_and_prune`, `brute_force_pairs`, `collider_aabb`;
+    design by `arquiteto`); 152 tests total, MSVC Debug+Release
   - [ ] 4e. Solver (sequential impulses, restitution, Coulomb friction) + `PhysicsWorld`
   - [ ] 4f. Benchmark (1k/5k bodies) + docs
 
@@ -49,9 +50,9 @@ cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug && cmake --build build && ctest
 
 ## Pending
 - Simple allocators (listed under `core/` in the target structure) are not implemented yet.
-- Linux CI (GCC/Clang) has not run yet for steps 4a/4b/4c; check the Actions result after the push.
+- Linux CI (GCC/Clang) passed for 4a-4c (GitHub Actions, commit 48c42d0, 2026-11-23).
 - Generation-exhaustion slot retirement in `EntityPool` is untested (needs 2^32 cycles).
 - Benchmark was run on Windows/MSVC only; Linux numbers not measured.
-- The 4d broadphase must emit each pair once in a stable order (degenerate narrowphase cases are
-  not antisymmetric, see `docs/architecture.md`).
-- Next: step 4d.
+- 4e: PhysicsWorld should pass `skip_static_pairs = true`; kinematic-vs-static filtering is open.
+- 4f: axis choice, persistent insertion sort and buffer reuse in the broadphase only if measured.
+- Next: step 4e.

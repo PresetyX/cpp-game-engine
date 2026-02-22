@@ -5,7 +5,7 @@
 - [x] 2. Core: logger, clock/FrameTimer, FixedTimestep, EventBus (31 tests, MSVC Debug+Release)
 - [x] 3. ECS: EntityPool (generational ids), SparseSet, Registry, View + benchmark
   (78 tests total, MSVC Debug+Release; design by the `arquiteto` agent)
-- [ ] 4. Math and 3D physics (plan by `arquiteto`)
+- [x] 4. Math and 3D physics (plan by `arquiteto`)
   - [x] 4a. GLM 1.0.1 + `engine_math` (`Transform`, `PreviousTransform`, `interpolate`, `Aabb`);
     94 tests total, MSVC Debug+Release
   - [x] 4b. `engine_physics`: `Collider`, `RigidBody`, `store_previous_transforms`,
@@ -18,7 +18,8 @@
   - [x] 4e. Solver (sequential impulses, restitution, Coulomb friction, position projection) +
     `PhysicsWorld` with triggers (design by `arquiteto`); 173 tests Debug / 174 Release (one
     Release-only broadphase NaN test), MSVC /W4 /WX
-  - [ ] 4f. Benchmark (1k/5k bodies) + docs
+  - [x] 4f. `physics_bench` (1k/5k bodies: step median 0.46 / 2.9 ms, Release MSVC) + docs
+    (`docs/benchmarks.md`, `README.md`)
 
 ## Decisions
 - Only GoogleTest is fetched in step 1; GLFW/glad/GLM/stb_image/spdlog are added in the steps
@@ -58,5 +59,7 @@ cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug && cmake --build build && ctest
 - 4e: static-static pairs are not reported against static triggers (broadphase filter); a
   kinematic body inside a static trigger is reported. Stack of 3 boxes sinks ~3-9 cm in total
   (measured); no warm starting.
-- 4f: axis choice, persistent insertion sort and buffer reuse in the broadphase only if measured.
-- Next: step 4f.
+- Broadphase tuning (axis choice, persistent insertion sort, buffer reuse) not done: step 5k is
+  2.9 ms, no need yet. Step time was not split between narrowphase and solver.
+- Physics benchmark measured on Windows/MSVC only.
+- Next: step 5 (assets).

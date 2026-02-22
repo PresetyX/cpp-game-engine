@@ -8,7 +8,10 @@ A C++17 / OpenGL 3.3 game engine, built step by step as a portfolio project.
 a fixed-timestep accumulator with render interpolation, and a typed event bus (`engine/core`),
 plus an ECS with generational entity ids, sparse-set component storage and views
 (`engine/ecs`, benchmark numbers in [docs/benchmarks.md](docs/benchmarks.md)).
-There is no rendering, physics or asset code yet.
+Also: `engine/math` (GLM) and `engine/physics`, a 3D translation-only physics (spheres and
+axis-aligned boxes, sweep-and-prune broadphase, sequential-impulse solver with friction, triggers);
+5k bodies step in ~3 ms (see [docs/benchmarks.md](docs/benchmarks.md)).
+There is no rendering or asset code yet.
 
 ## Build and test
 
@@ -26,7 +29,7 @@ ctest --test-dir build --output-on-failure
 - [x] 1. Project skeleton and CI
 - [x] 2. Core (logger, fixed-timestep loop, events; simple allocators still pending)
 - [x] 3. ECS
-- [ ] 4. Math and physics
+- [x] 4. Math and physics
 - [ ] 5. Assets
 - [ ] 6. Render
 - [ ] 7. Samples

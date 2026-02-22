@@ -2,7 +2,8 @@ add_library(engine_physics STATIC
     src/broadphase.cpp
     src/integrate.cpp
     src/narrowphase.cpp
-    src/solver.cpp)
+    src/solver.cpp
+    src/world.cpp)
 add_library(engine::physics ALIAS engine_physics)
 
 target_include_directories(engine_physics PUBLIC include)

@@ -17,6 +17,8 @@ struct Collider {
     glm::vec3 half_extents{0.5f, 0.5f, 0.5f};  // Box
     float friction = 0.5f;                     // Coulomb coefficient, >= 0
     float restitution = 0.0f;                  // [0, 1]
+    // Trigger: overlaps are reported by PhysicsWorld::contacts() but never resolved.
+    bool is_trigger = false;
 
     static Collider sphere(float radius, float friction = 0.5f, float restitution = 0.0f) {
         Collider c;

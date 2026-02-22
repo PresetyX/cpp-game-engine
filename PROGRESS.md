@@ -15,7 +15,9 @@
     (design by `arquiteto`); 138 tests total, MSVC Debug+Release
   - [x] 4d. Broadphase sweep-and-prune (`sweep_and_prune`, `brute_force_pairs`, `collider_aabb`;
     design by `arquiteto`); 152 tests total, MSVC Debug+Release
-  - [ ] 4e. Solver (sequential impulses, restitution, Coulomb friction) + `PhysicsWorld`
+  - [x] 4e. Solver (sequential impulses, restitution, Coulomb friction, position projection) +
+    `PhysicsWorld` with triggers (design by `arquiteto`); 173 tests Debug / 174 Release (one
+    Release-only broadphase NaN test), MSVC /W4 /WX
   - [ ] 4f. Benchmark (1k/5k bodies) + docs
 
 ## Decisions
@@ -53,6 +55,8 @@ cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug && cmake --build build && ctest
 - Linux CI (GCC/Clang) passed for 4a-4c (GitHub Actions, commit 48c42d0, 2026-11-23).
 - Generation-exhaustion slot retirement in `EntityPool` is untested (needs 2^32 cycles).
 - Benchmark was run on Windows/MSVC only; Linux numbers not measured.
-- 4e: PhysicsWorld should pass `skip_static_pairs = true`; kinematic-vs-static filtering is open.
+- 4e: static-static pairs are not reported against static triggers (broadphase filter); a
+  kinematic body inside a static trigger is reported. Stack of 3 boxes sinks ~3-9 cm in total
+  (measured); no warm starting.
 - 4f: axis choice, persistent insertion sort and buffer reuse in the broadphase only if measured.
-- Next: step 4e.
+- Next: step 4f.

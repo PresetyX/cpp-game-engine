@@ -13,7 +13,8 @@ add_executable(engine_tests
     physics/broadphase_test.cpp
     physics/integrate_test.cpp
     physics/narrowphase_test.cpp
-    physics/solver_test.cpp)
+    physics/solver_test.cpp
+    physics/world_test.cpp)
 target_link_libraries(engine_tests PRIVATE engine::core engine::ecs engine::math engine::physics GTest::gtest_main)
 engine_set_warnings(engine_tests)
 

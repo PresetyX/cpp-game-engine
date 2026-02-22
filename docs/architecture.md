@@ -146,3 +146,36 @@ dispatches on `ShapeType` (Box-Sphere is Sphere-Box with the normal flipped).
 - `brute_force_pairs` is the O(n^2) reference with the same contract (tests, 4f benchmark).
 - `skip_static_pairs` drops pairs where both proxies are static (default off).
 - Preconditions: unique entities, no NaN bounds (Debug asserts; Release ignores NaN proxies).
+
+### Solver and PhysicsWorld (`solver.hpp`, `world.hpp`)
+
+`PhysicsWorld::step(registry, dt)` runs inside one `FixedTimestep` tick, in this order:
+1. `store_previous_transforms`, 2. `integrate_bodies` (gravity from `PhysicsSettings`),
+3. broadphase (`sweep_and_prune`, `skip_static_pairs = true`), 4. per pair, in broadphase order:
+   narrowphase, record in `contacts()`, build a constraint unless a trigger is involved,
+5. `solve_contacts`.
+
+- Triggers: `Collider::is_trigger`. The trigger check comes *before* the "no dynamic body"
+  discard, so a kinematic body (or a kinematic-static pair) is reported inside a trigger.
+  Static-static pairs never reach the narrowphase (broadphase filter), so a static body is not
+  reported against a static trigger. Trigger pairs are never resolved.
+- Pairs without a dynamic body (static-static, kinematic-static, kinematic-kinematic) that
+  involve no trigger are discarded before the narrowphase: no response, not in `contacts()`.
+- `contacts()` holds solid and trigger overlaps of the last step (`ContactPair::trigger`), in the
+  canonical broadphase order, normal from `a` to `b`. No `EventBus`: callers poll each step.
+- Solver: sequential impulses, `velocity_iterations` passes (default 10) over the constraints in
+  a fixed order, normal impulse (accumulated, >= 0) then Coulomb friction (3D tangent vector,
+  clamped to `mu * Pn`, no tangent basis). No warm starting. Mixing: `mu = sqrt(mu_a * mu_b)`,
+  `e = max(e_a, e_b)`. Restitution only above `restitution_threshold` (1 m/s closing speed), so
+  resting contacts do not jitter.
+- Position correction: after the velocity passes, one direct projection by
+  `max(depth - slop, 0) * correction_percent` (slop 0.01, percent 0.4), split by inverse mass. It
+  does not touch velocities, so it adds no energy. The depth is the one measured before solving,
+  hence `percent < 1`. Resting depth is about `slop + g*dt^2*(1/percent - 1)` (1.4 cm at 60 Hz).
+- One contact point per pair is exact: with no rotation there is no torque, so every point of a
+  box-box manifold would have the same Jacobian.
+- Determinism: pair order is canonical, constraints and iterations have a fixed order, no hashing
+  or pointer ordering. Bit-for-bit repeatable on the same build and platform; across compilers
+  it is not guaranteed (e.g. FMA contraction).
+- Known limits: no CCD (fast or thin bodies can tunnel), no warm starting (tall stacks or large
+  mass ratios converge slowly), no sleeping, no rotation, no layers.

@@ -1,1 +1,2 @@
 tests/assets/fixtures/** -text
+third_party/glad/** -text

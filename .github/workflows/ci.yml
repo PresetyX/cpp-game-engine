@@ -17,8 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # xorg-dev + libgl-dev: needed to COMPILE GLFW (X11 only). CI never opens a window.
       - name: Install tools
-        run: sudo apt-get update && sudo apt-get install -y ninja-build
+        run: sudo apt-get update && sudo apt-get install -y ninja-build xorg-dev libgl-dev
 
       - name: Select compiler
         run: |

@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 project(cpp_game_engine
     VERSION 0.1.0
     DESCRIPTION "C++17 / OpenGL 3.3 game engine"
-    LANGUAGES CXX)
+    LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -16,6 +16,7 @@ endif()
 
 option(ENGINE_BUILD_TESTS "Build unit tests" ON)
 option(ENGINE_BUILD_SAMPLES "Build sample applications" OFF)
+option(ENGINE_BUILD_GPU_TESTS "Build tests that need an OpenGL context (never run by CI)" OFF)
 option(ENGINE_BUILD_BENCHMARKS "Build benchmarks (not run by ctest)" OFF)
 option(ENGINE_WARNINGS_AS_ERRORS "Treat warnings as errors in engine targets" ON)
 

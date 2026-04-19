@@ -1,4 +1,8 @@
 add_executable(engine_tests
+    assets/asset_manager_test.cpp
+    assets/image_test.cpp
+    assets/obj_test.cpp
+    assets/shader_source_test.cpp
     core/clock_test.cpp
     core/event_bus_test.cpp
     core/fixed_timestep_test.cpp
@@ -15,7 +19,9 @@ add_executable(engine_tests
     physics/narrowphase_test.cpp
     physics/solver_test.cpp
     physics/world_test.cpp)
-target_link_libraries(engine_tests PRIVATE engine::core engine::ecs engine::math engine::physics GTest::gtest_main)
+target_link_libraries(engine_tests PRIVATE engine::assets engine::core engine::ecs engine::math engine::physics GTest::gtest_main)
+target_compile_definitions(engine_tests PRIVATE ENGINE_TEST_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fixtures")
+target_include_directories(engine_tests PRIVATE assets)
 engine_set_warnings(engine_tests)
 
 gtest_discover_tests(engine_tests)

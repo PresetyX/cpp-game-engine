@@ -11,7 +11,8 @@ plus an ECS with generational entity ids, sparse-set component storage and views
 Also: `engine/math` (GLM) and `engine/physics`, a 3D translation-only physics (spheres and
 axis-aligned boxes, sweep-and-prune broadphase, sequential-impulse solver with friction, triggers);
 5k bodies step in ~3 ms (see [docs/benchmarks.md](docs/benchmarks.md)).
-There is no rendering or asset code yet.
+`engine/assets` loads images (stb_image), OBJ meshes and GLSL source text into CPU memory
+through a cached `AssetManager` with hot reload. There is no rendering code yet.
 
 ## Build and test
 
@@ -30,7 +31,7 @@ ctest --test-dir build --output-on-failure
 - [x] 2. Core (logger, fixed-timestep loop, events; simple allocators still pending)
 - [x] 3. ECS
 - [x] 4. Math and physics
-- [ ] 5. Assets
+- [x] 5. Assets
 - [ ] 6. Render
 - [ ] 7. Samples
 - [ ] 8. Quality (clang-tidy, sanitizers, coverage)

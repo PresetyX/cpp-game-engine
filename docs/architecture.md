@@ -179,3 +179,38 @@ dispatches on `ShapeType` (Box-Sphere is Sphere-Box with the normal flipped).
   it is not guaranteed (e.g. FMA contraction).
 - Known limits: no CCD (fast or thin bodies can tunnel), no warm starting (tall stacks or large
   mass ratios converge slowly), no sleeping, no rotation, no layers.
+
+## Assets
+
+`engine_assets` (static library, depends on `engine_core` and `engine_math`; stb_image is built as
+a separate warning-free library `engine_stb_image`). Everything here is CPU-side: files are read
+and decoded into plain structs, and nothing touches OpenGL, so tests need no window. Uploading to
+the GPU is the renderer's job (step 6).
+
+- `LoadResult<T>` (`result.hpp`): value or error message; loaders never throw for missing or bad
+  files.
+- `Image` (`image.hpp`): `load_image` / `decode_image` (stb_image, built with `STBI_NO_STDIO`: the
+  file is read by `read_binary_file` and decoded from memory). Always 8-bit RGBA, top row first;
+  `ImageOptions::flip_vertical` flips rows without stb's global flag.
+- `Mesh` (`mesh.hpp`): `parse_obj` / `load_obj`. Supports `v`, `vt`, `vn`, `f` (all four index
+  forms, negative indices, fan triangulation); other statements are ignored; vertices are
+  de-duplicated by (position, uv, normal) index triple; missing normals are computed (smooth,
+  area-weighted). Errors carry the line number. Floats are parsed with `std::from_chars`
+  (locale independent). Materials (`mtllib`) are not read.
+- `ShaderSource` (`shader_source.hpp`): vertex and fragment GLSL text, with BOM removed and line
+  endings normalized to LF (`normalize_text`), so `#version` is always first. Not compiled.
+- `AssetManager` (`asset_manager.hpp`): synchronous cache keyed by the normalized path relative
+  to a root directory, one store per asset type. `load<T>` returns a generational `Handle<T>`
+  and counts a reference; `release` frees at zero and makes the handle stale; `get` returns
+  `nullptr` for stale handles. Asset data lives in a `unique_ptr`, so pointers survive loading
+  other assets. New types plug in by specializing `AssetLoader<T>`. Shader keys are base paths:
+  `"shaders/basic"` loads `basic.vert` and `basic.frag`.
+- Hot reload: `reload_changed()` polls the `last_write_time` of every watched file (a shader has
+  two). A changed asset is rebuilt in place: same handle, `version()` incremented, so the renderer
+  can compare versions to know what to re-upload. A failed reload keeps the old data, logs the
+  error, and is retried only when the file changes again. Polling is meant to be called by the
+  application (e.g. once per second); there are no background threads and no async loading.
+  Not thread-safe.
+- Tests use fixtures in `tests/assets/fixtures` (a 2x2 PNG, a corrupt PNG, a quad OBJ, a shader
+  pair with CRLF line endings, kept byte-exact by `.gitattributes`). Reload tests copy them to a
+  temp directory and force a different modification time instead of sleeping.

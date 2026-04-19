@@ -20,6 +20,9 @@
     Release-only broadphase NaN test), MSVC /W4 /WX
   - [x] 4f. `physics_bench` (1k/5k bodies: step median 0.46 / 2.9 ms, Release MSVC) + docs
     (`docs/benchmarks.md`, `README.md`)
+- [x] 5. Assets: `engine_assets` (Image via stb_image, OBJ meshes, GLSL source text, `AssetManager`
+  with handles, ref counts and polling hot reload; synchronous, CPU-only); 203 tests Release /
+  202 Debug, MSVC /W4 /WX
 
 ## Decisions
 - Only GoogleTest is fetched in step 1; GLFW/glad/GLM/stb_image/spdlog are added in the steps
@@ -41,6 +44,10 @@
   dirs are marked SYSTEM in `cmake/Dependencies.cmake`; `engine_math` is an INTERFACE library, so
   `engine_set_warnings` is not applied to it (the headers are compiled with warnings via tests).
 
+- Step 5: stb_image.h is downloaded by URL pinned to a commit and SHA-256 (v2.34); keys for
+  shaders are base paths (`.vert`/`.frag`); no async loading (decided with the user: synchronous).
+  Details in `docs/architecture.md`.
+
 ## Commands
 Linux:
 ```sh
@@ -61,5 +68,7 @@ cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug && cmake --build build && ctest
   (measured); no warm starting.
 - Broadphase tuning (axis choice, persistent insertion sort, buffer reuse) not done: step 5k is
   2.9 ms, no need yet. Step time was not split between narrowphase and solver.
+- Step 5 untested on Linux CI until pushed; OBJ materials, glTF, async loading and file-watch
+  events (instead of polling) are not implemented.
 - Physics benchmark measured on Windows/MSVC only.
-- Next: step 5 (assets).
+- Next: step 6 (render).

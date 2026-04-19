@@ -38,3 +38,12 @@ if(ENGINE_BUILD_TESTS)
     FetchContent_MakeAvailable(googletest)
     include(GoogleTest)
 endif()
+
+# stb_image (single header, public domain), pinned by commit and checked by SHA-256.
+# Only the header is downloaded; the implementation is compiled in engine_assets.
+FetchContent_Declare(stb_image
+    URL https://raw.githubusercontent.com/nothings/stb/6b5799bae8a1fe3792691ef4b72ae26434c3e799/stb_image.h
+    URL_HASH SHA256=dfc2aadda6295f67f677587773f25e5bf8c8ad427ed0db7c518525c91e72e020
+    DOWNLOAD_NO_EXTRACT TRUE)
+FetchContent_MakeAvailable(stb_image)
+set(STB_IMAGE_DIR "${stb_image_SOURCE_DIR}" CACHE INTERNAL "")

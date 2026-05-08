@@ -2,6 +2,7 @@
 # upload cache, draw lists, light packing). Linked into engine_tests, so CI covers it.
 add_library(engine_render_core STATIC
     src/camera.cpp
+    src/image_upload.cpp
     src/shader_log.cpp)
 add_library(engine::render_core ALIAS engine_render_core)
 

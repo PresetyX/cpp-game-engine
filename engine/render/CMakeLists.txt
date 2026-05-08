@@ -1,7 +1,8 @@
 # engine_render_core: render logic with no OpenGL and no window (camera, shader log parsing,
 # upload cache, draw lists, light packing). Linked into engine_tests, so CI covers it.
 add_library(engine_render_core STATIC
-    src/camera.cpp)
+    src/camera.cpp
+    src/shader_log.cpp)
 add_library(engine::render_core ALIAS engine_render_core)
 
 target_include_directories(engine_render_core PUBLIC include)

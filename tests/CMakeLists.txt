@@ -20,6 +20,7 @@ add_executable(engine_tests
     physics/solver_test.cpp
     physics/world_test.cpp
     render/camera_test.cpp
+    render/draw_list_test.cpp
     render/shader_log_test.cpp
     render/upload_cache_test.cpp)
 target_link_libraries(engine_tests PRIVATE engine::assets engine::core engine::ecs engine::math engine::physics engine::render_core GTest::gtest_main)

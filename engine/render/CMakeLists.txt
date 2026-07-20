@@ -15,6 +15,8 @@ engine_set_warnings(engine_render_core)
 # engine_render: everything that talks to OpenGL/GLFW. Needs a window, so it is compiled in CI
 # but never run there.
 add_library(engine_render STATIC
+    src/gl_objects.cpp
+    src/renderer.cpp
     src/window.cpp)
 add_library(engine::render ALIAS engine_render)
 

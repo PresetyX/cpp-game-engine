@@ -20,10 +20,17 @@ void on_glfw_error(int code, const char* description) {
 }
 
 void on_framebuffer_size(GLFWwindow* handle, int width, int height) {
-    auto* self = static_cast<FramebufferSize*>(glfwGetWindowUserPointer(handle));
+    auto* self = static_cast<detail::WindowState*>(glfwGetWindowUserPointer(handle));
     if (self != nullptr) {
-        self->width = width;
-        self->height = height;
+        self->size.width = width;
+        self->size.height = height;
+    }
+}
+
+void on_scroll(GLFWwindow* handle, double /*x*/, double y) {
+    auto* self = static_cast<detail::WindowState*>(glfwGetWindowUserPointer(handle));
+    if (self != nullptr) {
+        self->scroll += y;
     }
 }
 
@@ -67,9 +74,10 @@ assets::LoadResult<std::unique_ptr<Window>> Window::create(const WindowConfig& c
 
     std::unique_ptr<Window> window(new Window());
     window->window_ = handle;
-    glfwGetFramebufferSize(handle, &window->size_.width, &window->size_.height);
-    glfwSetWindowUserPointer(handle, &window->size_);
+    glfwGetFramebufferSize(handle, &window->state_.size.width, &window->state_.size.height);
+    glfwSetWindowUserPointer(handle, &window->state_);
     glfwSetFramebufferSizeCallback(handle, on_framebuffer_size);
+    glfwSetScrollCallback(handle, on_scroll);
     ++g_window_count;
 
     log_info("OpenGL ", reinterpret_cast<const char*>(glGetString(GL_VERSION)), " / ",
@@ -100,6 +108,24 @@ void Window::poll_events() {
 
 void Window::swap_buffers() {
     glfwSwapBuffers(window_);
+}
+
+bool Window::key_down(int key) const {
+    return glfwGetKey(window_, key) == GLFW_PRESS;
+}
+
+bool Window::mouse_button_down(int button) const {
+    return glfwGetMouseButton(window_, button) == GLFW_PRESS;
+}
+
+void Window::cursor_position(double& x, double& y) const {
+    glfwGetCursorPos(window_, &x, &y);
+}
+
+double Window::consume_scroll() {
+    const double s = state_.scroll;
+    state_.scroll = 0.0;
+    return s;
 }
 
 double Window::time() const {

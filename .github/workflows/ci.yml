@@ -38,7 +38,7 @@ jobs:
           key: deps-${{ matrix.compiler }}-${{ matrix.build_type }}-${{ hashFiles('cmake/Dependencies.cmake') }}
 
       - name: Configure
-        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DENGINE_BUILD_BENCHMARKS=ON
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DENGINE_BUILD_BENCHMARKS=ON -DENGINE_BUILD_SAMPLES=ON
 
       - name: Build
         run: cmake --build build

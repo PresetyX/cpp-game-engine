@@ -21,6 +21,7 @@ add_executable(engine_tests
     physics/world_test.cpp
     render/camera_test.cpp
     render/draw_list_test.cpp
+    render/phong_shader_test.cpp
     render/shader_log_test.cpp
     render/upload_cache_test.cpp)
 target_link_libraries(engine_tests PRIVATE engine::assets engine::core engine::ecs engine::math engine::physics engine::render_core GTest::gtest_main)
@@ -29,3 +30,4 @@ target_include_directories(engine_tests PRIVATE assets)
 engine_set_warnings(engine_tests)
 
 gtest_discover_tests(engine_tests)
+target_compile_definitions(engine_tests PRIVATE ENGINE_SAMPLE_SHADER_DIR="${CMAKE_SOURCE_DIR}/samples/scene/assets/shaders")

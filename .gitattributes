@@ -1,2 +1,3 @@
 tests/assets/fixtures/** -text
 third_party/glad/** -text
+samples/scene/assets/** -text

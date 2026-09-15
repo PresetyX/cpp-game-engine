@@ -12,7 +12,9 @@ Also: `engine/math` (GLM) and `engine/physics`, a 3D translation-only physics (s
 axis-aligned boxes, sweep-and-prune broadphase, sequential-impulse solver with friction, triggers);
 5k bodies step in ~3 ms (see [docs/benchmarks.md](docs/benchmarks.md)).
 `engine/assets` loads images (stb_image), OBJ meshes and GLSL source text into CPU memory
-through a cached `AssetManager` with hot reload. There is no rendering code yet.
+through a cached `AssetManager` with hot reload. `engine/render` is an OpenGL 3.3 core renderer
+(GLFW window, Blinn-Phong with one directional and up to 8 point lights, orbit camera, hot reload
+of shaders, meshes and textures, interpolated drawing); the scene sample shows it.
 
 ## Build and test
 
@@ -25,6 +27,14 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
+To build and run the render sample (needs an OpenGL 3.3 driver; on Linux, `xorg-dev` and
+`libgl-dev` to compile GLFW):
+
+```sh
+cmake -B build -DENGINE_BUILD_SAMPLES=ON && cmake --build build
+./build/samples/scene/scene_sample
+```
+
 ## Roadmap
 
 - [x] 1. Project skeleton and CI
@@ -32,7 +42,7 @@ ctest --test-dir build --output-on-failure
 - [x] 3. ECS
 - [x] 4. Math and physics
 - [x] 5. Assets
-- [ ] 6. Render
+- [x] 6. Render
 - [ ] 7. Samples
 - [ ] 8. Quality (clang-tidy, sanitizers, coverage)
 - [ ] 9. Documentation

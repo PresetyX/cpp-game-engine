@@ -23,6 +23,10 @@
 - [x] 5. Assets: `engine_assets` (Image via stb_image, OBJ meshes, GLSL source text, `AssetManager`
   with handles, ref counts and polling hot reload; synchronous, CPU-only); 203 tests Release /
   202 Debug, MSVC /W4 /WX
+- [x] 6. Render (plan by `arquiteto`): `engine_render_core` (cameras, GLSL log parser, UploadCache,
+  draw list with interpolation, light packing; tested without GPU) and `engine_render` (GLFW
+  window, shader/mesh/texture, Blinn-Phong `Renderer`); `samples/scene` (physics + render).
+  263 tests Release / 262 Debug, MSVC /W4 /WX; the sample ran on Windows/NVIDIA (GL 3.3)
 
 ## Decisions
 - Only GoogleTest is fetched in step 1; GLFW/glad/GLM/stb_image/spdlog are added in the steps
@@ -48,6 +52,11 @@
   shaders are base paths (`.vert`/`.frag`); no async loading (decided with the user: synchronous).
   Details in `docs/architecture.md`.
 
+- Step 6 (approved by the user): glad 2.0.8 generated and committed (`third_party/glad`); GLFW 3.4
+  by release URL + SHA-256 (measured, the release page has no checksum); Linux X11 only; images
+  flipped at upload; no sRGB; max 8 point lights in uniform arrays; entities without
+  `PreviousTransform` are not interpolated. Details in `docs/architecture.md`.
+
 ## Commands
 Linux:
 ```sh
@@ -71,4 +80,8 @@ cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug && cmake --build build && ctest
 - Step 5 untested on Linux CI until pushed; OBJ materials, glTF, async loading and file-watch
   events (instead of polling) are not implemented.
 - Physics benchmark measured on Windows/MSVC only.
-- Next: step 6 (render).
+- Step 6: CI compiles the sample (`-DENGINE_BUILD_SAMPLES=ON`) but cannot run it; Linux/macOS
+  runtime untested. Mesa and Intel/AMD shader log formats only covered by fixtures. No
+  `ENGINE_BUILD_GPU_TESTS` tests exist yet (option is declared, OFF). No sRGB/gamma, instancing,
+  frustum culling, input module, or Wayland.
+- Next: step 7 (samples). Not started.

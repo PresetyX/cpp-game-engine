@@ -8,7 +8,8 @@ Work in progress; sections are added as modules are implemented.
   each with an `engine::<name>` alias. GPU-free logic stays in libraries that tests can link
   without creating a window.
 - **Dependencies on demand.** `cmake/Dependencies.cmake` only fetches what existing modules use
-  (currently GoogleTest). Each library is pinned by tag.
+  (GoogleTest, GLM, stb_image, GLFW; glad is committed). Each one is pinned by tag, or by URL plus
+  SHA-256 for single files and release archives.
 - **Own logger, no spdlog.** `engine/core/log.hpp` is a small level-filtered logger with an
   injectable sink (tests capture output; default is stderr). One less dependency.
 - **Time in `double` seconds.** Tests use powers of two (1/64) so comparisons are exact.
@@ -214,3 +215,69 @@ the GPU is the renderer's job (step 6).
 - Tests use fixtures in `tests/assets/fixtures` (a 2x2 PNG, a corrupt PNG, a quad OBJ, a shader
   pair with CRLF line endings, kept byte-exact by `.gitattributes`). Reload tests copy them to a
   temp directory and force a different modification time instead of sleeping.
+
+## Render
+
+Split in two libraries so that everything with logic is testable without a window:
+
+- `engine_render_core` (no GL, linked into `engine_tests`, covered by CI): cameras, GLSL info log
+  parser, `UploadCache`, `flip_rows`, render components, draw list and light packing.
+- `engine_render` (GL + GLFW, compiled in CI, never run there): `Window`, `ShaderProgram`,
+  `GpuMesh`, `GpuTexture`, `Renderer`. It only translates the data produced by the core into GL
+  calls. `ENGINE_BUILD_GPU_TESTS` (OFF) is reserved for tests that need a context; there are none
+  yet.
+
+### Dependencies
+- GLFW 3.4 from the official release archive, pinned by SHA-256 (`cmake/Dependencies.cmake`). The
+  release page publishes no checksum; the hash was measured on the asset (1653725 bytes, same bytes
+  in two downloads, `src/` identical to git tag 3.4, commit `a74efa0`). Docs, tests, examples and
+  Wayland are OFF (Linux builds X11 only: `xorg-dev`, `libgl-dev`).
+- glad 2.0.8, GL core 3.3 without extensions, generated once and committed in `third_party/glad`
+  (command and SHA-256 in its README), so CI needs neither Python nor network access for it. It
+  is compiled as its own target without the engine warning policy. `project()` now enables C.
+
+### Camera (`camera.hpp`)
+`PerspectiveCamera::projection(w, h)` returns no value for a zero-sized framebuffer (minimized
+window) and the renderer skips the frame. `OrbitCamera` keeps target, distance, yaw and pitch;
+pitch is clamped to +-89 degrees and distance to [0.1, 1000]. Angles are radians.
+
+### Shader errors (`shader_log.hpp`)
+`parse_info_log` understands the NVIDIA (`0(12) : error C1008: ...`), Mesa (`0:12(5): error: ...`)
+and Intel/AMD (`ERROR: 0:12: ...`) dialects; unknown lines are kept as notes. The engine does not
+inject text after `#version`, so the line is the line in the file. `ShaderProgram::create`
+reports `path/phong.frag:58: error: ...`. The NVIDIA format was verified on a real driver, Mesa
+and Intel/AMD only through fixtures.
+
+### GPU resources and hot reload
+`UploadCache<Handle, Gpu>` stores the asset `version()` that is on the GPU. Each frame the
+renderer uploads what is missing or has a different version and erases entries whose asset was
+released (`version() == 0`). So `AssetManager::reload_changed()` is all an application has to
+call. The shader works the same way: a failed recompile is logged with file and line, the old
+program keeps being used, and the broken version is not retried until the file changes again.
+Images are uploaded with the rows flipped (`flip_rows`), so uv (0,0) is the bottom-left corner;
+the asset loader keeps the top row first.
+
+### Frame (`draw_list.hpp`, `lights.hpp`, `renderer.hpp`)
+`collect_draw_items(registry, alpha)` takes entities with `MeshRenderer` + `Transform` and draws
+`interpolate(PreviousTransform, Transform, alpha)`; entities without `PreviousTransform` (static
+ones) are drawn at their `Transform`. alpha is `FixedTimestep::alpha()`, clamped to [0, 1]. Items
+are sorted by (texture, mesh, entity), which does not depend on hash-map order. The normal matrix
+is `transpose(inverse(mat3(model)))` (identity if the matrix is singular).
+
+`pack_lights` gives one directional light (lowest entity index) with the scene ambient term, and
+at most `kMaxPointLights = 8` point lights: the closest to the camera, ties by entity index. They
+travel as plain uniform arrays (no UBO). The limit is duplicated in `phong.frag`; a test reads the
+shader and fails if the two differ, and also checks the uniform names the renderer sets.
+
+Shading is Blinn-Phong, forward, back-face culling, depth test `GL_LESS`. Point lights fall off
+with `clamp(1 - (d/range)^2, 0, 1)^2`.
+
+### Known limitations
+- No sRGB (textures and framebuffer are linear), no PBR, no shadows, no instancing: one draw call
+  per entity.
+- Only Windows/NVIDIA was run (OpenGL 3.3.0 context, shader hot reload with a deliberate error).
+  Linux and macOS are compiled or untested; the window code uses GLFW only.
+- No `glDebugMessageCallback` (GL 4.3): `check_gl_error` logs `glGetError` in Debug builds.
+- The engine has no input module; `Window` exposes just enough (keys, buttons, cursor, scroll)
+  for the sample.
+- One `Window` per process at a time is the tested case.

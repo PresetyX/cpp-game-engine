@@ -206,6 +206,10 @@ the GPU is the renderer's job (step 6).
   `nullptr` for stale handles. Asset data lives in a `unique_ptr`, so pointers survive loading
   other assets. New types plug in by specializing `AssetLoader<T>`. Shader keys are base paths:
   `"shaders/basic"` loads `basic.vert` and `basic.frag`.
+- Keys may be absolute: the loaders read `root / key`, and `std::filesystem` makes that the key
+  itself when it is absolute. `model_viewer` uses this to open a model outside the asset folder
+  (covered by `SampleAssets.TorusLoadsThroughAnAbsoluteKey`). The key (and so the watched path)
+  is then the absolute path.
 - Hot reload: `reload_changed()` polls the `last_write_time` of every watched file (a shader has
   two). A changed asset is rebuilt in place: same handle, `version()` incremented, so the renderer
   can compare versions to know what to re-upload. A failed reload keeps the old data, logs the
@@ -279,5 +283,27 @@ with `clamp(1 - (d/range)^2, 0, 1)^2`.
   Linux and macOS are compiled or untested; the window code uses GLFW only.
 - No `glDebugMessageCallback` (GL 4.3): `check_gl_error` logs `glGetError` in Debug builds.
 - The engine has no input module; `Window` exposes just enough (keys, buttons, cursor, scroll)
-  for the sample.
+  for the samples. `Window::set_title` exists so a sample can show statistics in the title bar.
+- No automated test opens a window; see "Samples" below for what was run by hand.
 - One `Window` per process at a time is the tested case.
+
+## Samples
+
+`samples/` is built only with `ENGINE_BUILD_SAMPLES=ON` (CI compiles it, never runs it). Layout:
+
+- `samples/assets/`: shaders, meshes, texture and the example model, shared by both samples
+  (`ENGINE_SAMPLE_ASSET_DIR` points at the source folder so shader hot reload edits the real file).
+  Origins and licenses: `samples/assets/README.md`. The tests also read `assets/shaders` (shader
+  consistency) and `assets/models` (the sample model loads, indices valid, winding agrees with
+  the normals).
+- `samples/common/orbit_controls.hpp`: mouse orbit/zoom and an edge-triggered key helper. Sample
+  code only; it is the place an input module would replace.
+- `physics_playground`: `Registry` + `PhysicsWorld` stepped by `FixedTimestep` (60 Hz), drawn with
+  `alpha` interpolation. The step time in the title is measured with `Window::time()` around
+  `PhysicsWorld::step` (all steps of the frame, averaged over the steps in the last 0.5 s). `R`
+  rebuilds the `Registry` and reseeds the RNG, so a reset reproduces the initial scene.
+- `model_viewer`: loads the OBJ by absolute key, frames the camera on the bounding sphere
+  (center of the AABB, distance from the field of view), one entity without `PreviousTransform`
+  (drawn at its `Transform`, no interpolation needed). It calls `reload_changed()` once per
+  second and refreshes the title when the mesh `version()` changes; the camera is not reframed on
+  reload.

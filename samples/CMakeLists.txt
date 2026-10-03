@@ -1,1 +1,2 @@
-add_subdirectory(scene)
+add_subdirectory(physics_playground)
+add_subdirectory(model_viewer)

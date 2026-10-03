@@ -2,6 +2,7 @@ add_executable(engine_tests
     assets/asset_manager_test.cpp
     assets/image_test.cpp
     assets/obj_test.cpp
+    assets/sample_assets_test.cpp
     assets/shader_source_test.cpp
     core/clock_test.cpp
     core/event_bus_test.cpp
@@ -30,4 +31,5 @@ target_include_directories(engine_tests PRIVATE assets)
 engine_set_warnings(engine_tests)
 
 gtest_discover_tests(engine_tests)
-target_compile_definitions(engine_tests PRIVATE ENGINE_SAMPLE_SHADER_DIR="${CMAKE_SOURCE_DIR}/samples/scene/assets/shaders")
+target_compile_definitions(engine_tests PRIVATE ENGINE_SAMPLE_SHADER_DIR="${CMAKE_SOURCE_DIR}/samples/assets/shaders")
+target_compile_definitions(engine_tests PRIVATE ENGINE_SAMPLE_ASSET_DIR="${CMAKE_SOURCE_DIR}/samples/assets")

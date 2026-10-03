@@ -1,13 +1,17 @@
-// Scene sample: bodies fall onto a floor (engine_physics), drawn with the Phong renderer.
+// Physics playground: spheres and boxes fall and collide on a static floor (engine_physics),
+// drawn with the Phong renderer.
 //
-//   left mouse drag  orbit        mouse wheel  zoom        Space  drop a body
-//   Esc              quit
+//   left mouse drag  orbit        mouse wheel  zoom        Space  drop a new body
+//   R                reset the scene                        Esc    quit
 //
-// Edit assets/shaders/phong.frag (or a mesh/texture) while it runs: it is reloaded within ~1 s.
-// The fixed-step simulation runs at 60 Hz; drawing interpolates with FixedTimestep::alpha().
+// The window title shows the number of bodies and the time of the last physics step (average
+// over the last ~0.5 s). Edit assets/shaders/phong.frag (or a mesh/texture) while it runs: it
+// is reloaded within ~1 s. The fixed-step simulation runs at 60 Hz; drawing interpolates with
+// FixedTimestep::alpha().
 
 #include <GLFW/glfw3.h>
 
+#include <cstdio>
 #include <cstdlib>
 #include <memory>
 #include <random>
@@ -24,9 +28,10 @@
 #include "engine/render/components.hpp"
 #include "engine/render/renderer.hpp"
 #include "engine/render/window.hpp"
+#include "orbit_controls.hpp"
 
 #ifndef ENGINE_SAMPLE_ASSET_DIR
-#error "ENGINE_SAMPLE_ASSET_DIR must point to samples/scene/assets"
+#error "ENGINE_SAMPLE_ASSET_DIR must point to samples/assets"
 #endif
 
 using namespace engine;
@@ -35,9 +40,10 @@ namespace {
 
 constexpr float kStep = 1.0f / 60.0f;
 constexpr std::size_t kMaxBodies = 300;
+constexpr int kInitialBodies = 40;
 
 struct Scene {
-    Registry registry;
+    Registry registry;  // replaced by reset()
     assets::Handle<assets::Mesh> cube;
     assets::Handle<assets::Mesh> sphere;
     assets::Handle<assets::Image> checker;
@@ -96,6 +102,20 @@ void add_body(Scene& s, bool sphere) {
     s.registry.add<render::MeshRenderer>(e, mr);
 }
 
+void add_lights(Scene& s);
+
+// Starts over: new registry, floor, lights and the initial bodies, same random sequence.
+void reset(Scene& s) {
+    s.registry = Registry{};
+    s.bodies = 0;
+    s.rng.seed(1234);
+    add_floor(s);
+    add_lights(s);
+    for (int i = 0; i < kInitialBodies; ++i) {
+        add_body(s, i % 2 == 0);
+    }
+}
+
 void add_lights(Scene& s) {
     const Entity sun = s.registry.create();
     render::DirectionalLight dl;
@@ -127,7 +147,7 @@ int main() {
     assets::AssetManager assets{std::filesystem::path(ENGINE_SAMPLE_ASSET_DIR)};
 
     render::WindowConfig config;
-    config.title = "engine - scene sample";
+    config.title = "engine - physics playground";
     auto window = render::Window::create(config);
     if (!window) {
         log_error(window.error());
@@ -157,11 +177,7 @@ int main() {
     scene.sphere = sphere.value();
     scene.checker = checker.value();
 
-    add_floor(scene);
-    add_lights(scene);
-    for (int i = 0; i < 40; ++i) {
-        add_body(scene, i % 2 == 0);
-    }
+    reset(scene);
 
     physics::PhysicsWorld physics;
     FixedTimestep timestep(kStep);
@@ -172,11 +188,13 @@ int main() {
 
     double last_time = (*window)->time();
     double next_reload = last_time + 1.0;
-    double last_x = 0.0;
-    double last_y = 0.0;
-    (*window)->cursor_position(last_x, last_y);
-    bool space_was_down = false;
+    sample::OrbitControls orbit(**window);
+    sample::KeyPress space_key(GLFW_KEY_SPACE);
+    sample::KeyPress reset_key(GLFW_KEY_R);
     bool sphere_next = true;
+    double step_ms_sum = 0.0;  // physics time since the last title update
+    int step_count = 0;
+    double next_title = last_time + 0.5;
 
     while (!(*window)->should_close()) {
         (*window)->poll_events();
@@ -188,30 +206,33 @@ int main() {
         const double frame_dt = now - last_time;
         last_time = now;
 
-        // Camera input.
-        double x = 0.0;
-        double y = 0.0;
-        (*window)->cursor_position(x, y);
-        if ((*window)->mouse_button_down(GLFW_MOUSE_BUTTON_LEFT)) {
-            camera.orbit(static_cast<float>(-(x - last_x)) * 0.005f,
-                         static_cast<float>(y - last_y) * 0.005f);
-        }
-        last_x = x;
-        last_y = y;
-        const double scroll = (*window)->consume_scroll();
-        if (scroll != 0.0) {
-            camera.zoom(scroll > 0.0 ? 0.9f : 1.1f);
-        }
-        const bool space = (*window)->key_down(GLFW_KEY_SPACE);
-        if (space && !space_was_down) {
+        orbit.update(**window, camera);
+        if (space_key.pressed(**window)) {
             add_body(scene, sphere_next);
             sphere_next = !sphere_next;
         }
-        space_was_down = space;
+        if (reset_key.pressed(**window)) {
+            reset(scene);
+            sphere_next = true;
+        }
 
         // Simulation at a fixed rate, drawing interpolated by alpha.
-        const double alpha = timestep.update(
-            frame_dt, [&](double step) { physics.step(scene.registry, static_cast<float>(step)); });
+        const double alpha = timestep.update(frame_dt, [&](double step) {
+            const double t0 = (*window)->time();
+            physics.step(scene.registry, static_cast<float>(step));
+            step_ms_sum += ((*window)->time() - t0) * 1000.0;
+            ++step_count;
+        });
+
+        if (now >= next_title) {
+            char title[128];
+            std::snprintf(title, sizeof title, "engine - physics playground | %zu bodies | step %.3f ms",
+                          scene.bodies, step_count > 0 ? step_ms_sum / step_count : 0.0);
+            (*window)->set_title(title);
+            step_ms_sum = 0.0;
+            step_count = 0;
+            next_title = now + 0.5;
+        }
 
         if (now >= next_reload) {
             assets.reload_changed();

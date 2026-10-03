@@ -59,6 +59,7 @@ public:
     // Scroll offset accumulated since the last call (vertical wheel steps); resets to 0.
     double consume_scroll();
     double time() const;  // seconds since GLFW init
+    void set_title(const std::string& title);
 
     GLFWwindow* handle() const { return window_; }
 

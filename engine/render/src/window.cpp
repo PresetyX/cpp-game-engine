@@ -132,4 +132,8 @@ double Window::time() const {
     return glfwGetTime();
 }
 
+void Window::set_title(const std::string& title) {
+    glfwSetWindowTitle(window_, title.c_str());
+}
+
 }  // namespace engine::render

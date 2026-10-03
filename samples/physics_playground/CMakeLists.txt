@@ -1,0 +1,10 @@
+# Physics playground: physics + Phong renderer. Built only with -DENGINE_BUILD_SAMPLES=ON; CI
+# compiles it but never runs it (it needs a window and an OpenGL 3.3 driver).
+add_executable(physics_playground main.cpp)
+target_link_libraries(physics_playground PRIVATE engine::render engine::physics engine::assets
+    engine::ecs engine::core engine::math glfw)
+target_include_directories(physics_playground PRIVATE ../common)
+# The source folder, not a copy, so editing a shader while the sample runs hot reloads it.
+target_compile_definitions(physics_playground PRIVATE
+    ENGINE_SAMPLE_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../assets" GLFW_INCLUDE_NONE)
+engine_set_warnings(physics_playground)

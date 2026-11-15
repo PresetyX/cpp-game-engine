@@ -23,6 +23,7 @@ glm::mat3 normal_matrix_of(const glm::mat4& model) {
     const glm::mat3 m(model);
     const float det = glm::determinant(m);
     if (!(std::abs(det) > 1e-12f)) {
+        // NOLINTNEXTLINE(modernize-return-braced-init-list): glm::mat3(float) is explicit
         return glm::mat3(1.0f);
     }
     return glm::transpose(glm::inverse(m));
@@ -31,11 +32,11 @@ glm::mat3 normal_matrix_of(const glm::mat4& model) {
 }  // namespace
 
 bool render_transform(const Registry& registry, Entity e, float alpha, math::Transform& out) {
-    const math::Transform* curr = registry.try_get<math::Transform>(e);
+    const auto* curr = registry.try_get<math::Transform>(e);
     if (curr == nullptr) {
         return false;
     }
-    const math::PreviousTransform* prev = registry.try_get<math::PreviousTransform>(e);
+    const auto* prev = registry.try_get<math::PreviousTransform>(e);
     out = prev != nullptr ? math::interpolate(prev->value, *curr, clamp01(alpha)) : *curr;
     return true;
 }

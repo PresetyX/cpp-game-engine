@@ -192,6 +192,8 @@ GpuMesh::GpuMesh(const assets::Mesh& mesh) {
                  mesh.indices.data(), GL_STATIC_DRAW);
 
     const auto stride = static_cast<GLsizei>(sizeof(assets::Vertex));
+    // glVertexAttribPointer takes a byte offset into the bound buffer disguised as a pointer.
+    // NOLINTBEGIN(performance-no-int-to-ptr)
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride,
                           reinterpret_cast<const void*>(offsetof(assets::Vertex, position)));
@@ -201,6 +203,7 @@ GpuMesh::GpuMesh(const assets::Mesh& mesh) {
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride,
                           reinterpret_cast<const void*>(offsetof(assets::Vertex, uv)));
+    // NOLINTEND(performance-no-int-to-ptr)
     glBindVertexArray(0);
     check_gl_error("GpuMesh");
 }

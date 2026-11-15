@@ -267,6 +267,7 @@ private:
 
             std::vector<std::filesystem::path> files_paths() const {
                 std::vector<std::filesystem::path> p;
+                p.reserve(files.size());
                 for (const Watched& w : files) {
                     p.push_back(w.path);
                 }

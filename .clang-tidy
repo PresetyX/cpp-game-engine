@@ -1,3 +1,6 @@
+# Run on our own code only (engine/ and samples/), not on third_party or _deps:
+#   clang-tidy -p build <files under engine/*/src and samples/*/>
+# (see docs/quality.md for the exact command).
 Checks: >
   -*,
   bugprone-*,
@@ -7,6 +10,20 @@ Checks: >
   readability-container-size-empty,
   readability-redundant-*,
   -modernize-use-trailing-return-type,
-  -bugprone-easily-swappable-parameters
+  -bugprone-easily-swappable-parameters,
+  -modernize-avoid-c-arrays,
+  -bugprone-exception-escape,
+  -modernize-use-nodiscard
+# Disabled on purpose:
+#  - modernize-avoid-c-arrays: the hits are small fixed-size locals (OBJ token and float
+#    buffers, 4-byte pixels, light colour tables in the samples). std::array adds noise and no safety.
+#  - bugprone-exception-escape: reports move constructors/destructors/main as "may throw" because of
+#    what std containers and the logger may do in theory; all of them are already noexcept or
+#    terminate by design, and nothing in the engine relies on exceptions to recover.
+#  - modernize-use-nodiscard: 97 hits, all plain getters (alive, size, get, version, ...). Marking
+#    every one is a wide mechanical edit; the few where ignoring the result is a bug are covered by tests.
+#  - modernize-use-trailing-return-type, bugprone-easily-swappable-parameters: style choices
+#    (e.g. collide(pa, ra, pb, rb) style signatures are deliberate).
 WarningsAsErrors: ''
-HeaderFilterRegex: '.*/engine/.*'
+# [/\\] so it matches both Unix and Windows paths.
+HeaderFilterRegex: '.*[/\\](engine|samples)[/\\].*'

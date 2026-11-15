@@ -1,12 +1,13 @@
 #pragma once
 
+#include <cstdint>
 #include <cassert>
 
 #include "engine/math/glm.hpp"
 
 namespace engine::physics {
 
-enum class ShapeType { Sphere, Box };
+enum class ShapeType : std::uint8_t { Sphere, Box };
 
 // Collision shape in the entity local space (centered on Transform::position).
 // Box is axis-aligned in world space: rotation is ignored by the physics (translation only).

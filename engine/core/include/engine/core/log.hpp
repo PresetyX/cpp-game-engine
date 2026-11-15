@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <sstream>
 #include <string>
@@ -7,7 +8,7 @@
 
 namespace engine {
 
-enum class LogLevel { Trace = 0, Debug, Info, Warn, Error };
+enum class LogLevel : std::uint8_t { Trace = 0, Debug, Info, Warn, Error };
 
 using LogSink = std::function<void(LogLevel, std::string_view)>;
 

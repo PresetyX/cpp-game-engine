@@ -11,7 +11,7 @@ std::vector<std::uint8_t> flip_rows(const assets::Image& image) {
     }
     const std::size_t row_bytes =
         static_cast<std::size_t>(image.width) * static_cast<std::size_t>(assets::Image::channels);
-    const std::size_t rows = static_cast<std::size_t>(image.height);
+    const auto rows = static_cast<std::size_t>(image.height);
     if (image.pixels.size() < row_bytes * rows) {
         return {};
     }

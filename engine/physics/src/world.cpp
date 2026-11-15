@@ -41,10 +41,10 @@ void PhysicsWorld::step(Registry& registry, float dt) {
     for (const BroadphasePair& pair : pairs) {
         const Collider& col_a = registry.get<Collider>(pair.a);
         const Collider& col_b = registry.get<Collider>(pair.b);
-        math::Transform& ta = registry.get<math::Transform>(pair.a);
-        math::Transform& tb = registry.get<math::Transform>(pair.b);
-        RigidBody* rb_a = registry.try_get<RigidBody>(pair.a);
-        RigidBody* rb_b = registry.try_get<RigidBody>(pair.b);
+        auto& ta = registry.get<math::Transform>(pair.a);
+        auto& tb = registry.get<math::Transform>(pair.b);
+        auto* rb_a = registry.try_get<RigidBody>(pair.a);
+        auto* rb_b = registry.try_get<RigidBody>(pair.b);
 
         // The trigger check comes before the "no dynamic body" discard, so a kinematic body
         // (or a static-vs-kinematic pair) is still detected inside a trigger.

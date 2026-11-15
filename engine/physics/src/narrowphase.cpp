@@ -13,7 +13,8 @@ std::optional<Contact> collide_sphere_sphere(const glm::vec3& ca, float ra, cons
     const glm::vec3 d = cb - ca;
     const float sum = ra + rb;
     const float dist2 = glm::dot(d, d);
-    if (dist2 >= sum * sum) return std::nullopt;
+    if (dist2 >= sum * sum) { return std::nullopt;
+}
 
     const float dist = std::sqrt(dist2);
     const glm::vec3 n = dist > kEpsilon ? d / dist : glm::vec3{0.0f, 1.0f, 0.0f};
@@ -33,7 +34,8 @@ std::optional<Contact> collide_sphere_box(const glm::vec3& center, float radius,
     if (q != center) {
         const glm::vec3 d = q - center;
         const float dist2 = glm::dot(d, d);
-        if (dist2 >= radius * radius) return std::nullopt;
+        if (dist2 >= radius * radius) { return std::nullopt;
+}
         const float dist = std::sqrt(dist2);
         Contact c;
         c.normal = d / dist;
@@ -69,11 +71,14 @@ std::optional<Contact> collide_box_box(const glm::vec3& ca, const glm::vec3& ha,
                                        const glm::vec3& cb, const glm::vec3& hb) {
     const glm::vec3 delta = cb - ca;
     const glm::vec3 overlap = ha + hb - glm::abs(delta);
-    if (overlap.x <= 0.0f || overlap.y <= 0.0f || overlap.z <= 0.0f) return std::nullopt;
+    if (overlap.x <= 0.0f || overlap.y <= 0.0f || overlap.z <= 0.0f) { return std::nullopt;
+}
 
     int axis = 0;
-    if (overlap.y < overlap[axis]) axis = 1;
-    if (overlap.z < overlap[axis]) axis = 2;
+    if (overlap.y < overlap[axis]) { axis = 1;
+}
+    if (overlap.z < overlap[axis]) { axis = 2;
+}
 
     Contact c;
     c.normal = glm::vec3{0.0f};
@@ -88,12 +93,15 @@ std::optional<Contact> collide_box_box(const glm::vec3& ca, const glm::vec3& ha,
 std::optional<Contact> collide(const Collider& a, const glm::vec3& pa, const Collider& b,
                                const glm::vec3& pb) {
     if (a.type == ShapeType::Sphere) {
-        if (b.type == ShapeType::Sphere) return collide_sphere_sphere(pa, a.radius, pb, b.radius);
+        if (b.type == ShapeType::Sphere) { return collide_sphere_sphere(pa, a.radius, pb, b.radius);
+}
         return collide_sphere_box(pa, a.radius, pb, b.half_extents);
     }
-    if (b.type == ShapeType::Box) return collide_box_box(pa, a.half_extents, pb, b.half_extents);
+    if (b.type == ShapeType::Box) { return collide_box_box(pa, a.half_extents, pb, b.half_extents);
+}
     auto c = collide_sphere_box(pb, b.radius, pa, a.half_extents);
-    if (c) c->normal = -c->normal;
+    if (c) { c->normal = -c->normal;
+}
     return c;
 }
 

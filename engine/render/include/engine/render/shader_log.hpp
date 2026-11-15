@@ -1,12 +1,13 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace engine::render {
 
-enum class DiagnosticSeverity { Error, Warning, Note };
+enum class DiagnosticSeverity : std::uint8_t { Error, Warning, Note };
 
 // One message of a GLSL compiler info log. `line` is 1-based in the shader source that was
 // passed to glShaderSource; 0 means the driver gave no line. Because the engine does not inject

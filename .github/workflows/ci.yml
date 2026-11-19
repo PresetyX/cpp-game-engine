@@ -45,3 +45,72 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build --output-on-failure
+
+  # Optional extra checks (not part of the required matrix above).
+  sanitizers:
+    name: clang / ASan + UBSan
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
+      ASAN_OPTIONS: detect_leaks=1:strict_string_checks=1
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y ninja-build xorg-dev libgl-dev
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: deps-sanitize-${{ hashFiles('cmake/Dependencies.cmake') }}
+      - name: Configure
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENGINE_SANITIZE=ON
+      - name: Build
+        run: cmake --build build
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  coverage:
+    name: gcc / line coverage (no GPU code)
+    runs-on: ubuntu-latest
+    env:
+      CC: gcc
+      CXX: g++
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y ninja-build xorg-dev libgl-dev lcov
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: deps-coverage-${{ hashFiles('cmake/Dependencies.cmake') }}
+      - name: Configure
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENGINE_COVERAGE=ON
+      - name: Build
+        run: cmake --build build
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+      - name: Coverage report
+        run: |
+          lcov --capture --directory build --output-file all.info --rc branch_coverage=0                --ignore-errors mismatch,inconsistent,unused,negative
+          # Only our engine code (not tests, samples, benchmarks, third_party or _deps).
+          lcov --extract all.info "$PWD/engine/*" --output-file engine.info                --ignore-errors unused
+          # Code that needs an OpenGL context / window and so is never run by the tests.
+          lcov --remove engine.info                "$PWD/engine/render/src/window.cpp" "$PWD/engine/render/src/gl_objects.cpp"                "$PWD/engine/render/src/renderer.cpp"                "$PWD/engine/render/include/engine/render/window.hpp"                "$PWD/engine/render/include/engine/render/gl_objects.hpp"                "$PWD/engine/render/include/engine/render/renderer.hpp"                --output-file engine_no_gpu.info --ignore-errors unused
+          {
+            echo "### Line coverage"
+            echo '```'
+            echo "engine/ without GPU files (window, gl_objects, renderer):"
+            lcov --summary engine_no_gpu.info --rc branch_coverage=0 2>&1 | grep -E "lines|functions"
+            echo "engine/ including GPU files:"
+            lcov --summary engine.info --rc branch_coverage=0 2>&1 | grep -E "lines|functions"
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "--- per file (no GPU) ---"
+          lcov --list engine_no_gpu.info --rc branch_coverage=0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: "*.info"

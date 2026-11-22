@@ -72,7 +72,7 @@ jobs:
         run: ctest --test-dir build --output-on-failure
 
   coverage:
-    name: gcc / line coverage (no GPU code)
+    name: gcc / line coverage
     runs-on: ubuntu-latest
     env:
       CC: gcc
@@ -99,20 +99,17 @@ jobs:
           lcov --capture --directory build --output-file all.info $IGN
           # Only our engine code (not tests, samples, benchmarks, third_party or _deps).
           lcov --extract all.info "$PWD/engine/*" --output-file engine.info $IGN
-          # Code that needs an OpenGL context / window and so is never run by the tests.
-          lcov --remove engine.info                "$PWD/engine/render/src/window.cpp" "$PWD/engine/render/src/gl_objects.cpp"                "$PWD/engine/render/src/renderer.cpp"                "$PWD/engine/render/include/engine/render/window.hpp"                "$PWD/engine/render/include/engine/render/gl_objects.hpp"                "$PWD/engine/render/include/engine/render/renderer.hpp"                --output-file engine_no_gpu.info $IGN
+          # engine_render (window, gl_objects, renderer: needs an OpenGL context) is not linked
+          # into engine_tests, so it has no coverage data and is not counted here.
           {
-            echo "### Line coverage"
+            echo "### Line coverage of engine/ (tests only; GPU code is not part of the test binary)"
             echo '```'
-            echo "engine/ without GPU files (window, gl_objects, renderer):"
-            lcov --summary engine_no_gpu.info $IGN 2>&1 | grep -E "lines|functions"
-            echo "engine/ including GPU files:"
-            lcov --summary engine.info $IGN 2>&1 | grep -E "lines|functions"
+            lcov --summary engine.info $IGN 2>&1 | grep -E "source files|lines|functions"
             echo '```'
           } | tee -a "$GITHUB_STEP_SUMMARY"
-          echo "--- per file (no GPU) ---"
-          lcov --list engine_no_gpu.info $IGN
+          echo "--- per file ---"
+          lcov --list engine.info $IGN
       - uses: actions/upload-artifact@v4
         with:
           name: coverage
-          path: "*.info"
+          path: engine.info

@@ -31,6 +31,16 @@
   shows bodies and physics step ms) and `model_viewer` (OBJ by command line, bundled
   `torus.obj`, shader hot reload). 265 tests Debug / 266 Release, MSVC /W4 /WX. Done by the main
   agent without the `arquiteto`.
+- [x] 8. Quality (done by the main agent, no `arquiteto`)
+  - [x] 8a. clang-tidy (LLVM 19.1.5): 32 findings in `.cpp` fixed or justified; once headers were
+    included (`HeaderFilterRegex` fixed for Windows paths) 101 more appeared: enum base types and a
+    `reserve` fixed, `modernize-use-nodiscard` (97 getters) disabled. Now 0 warnings.
+  - [x] 8b. `ENGINE_SANITIZE` + CI job `clang / ASan + UBSan`: 265 tests pass, no report; no bug
+    found.
+  - [x] 8c. `ENGINE_COVERAGE` + CI job `gcc / line coverage`: 97.3 % lines (1232/1266), 93.5 %
+    functions (709/758), 38 files of `engine/`, GPU code not linked into the tests so not counted.
+- [x] 9. Documentation: README rewritten (tested numbers, limitations, roadmap, GIF placeholders),
+  `docs/architecture.md` with a Mermaid dependency diagram and a Quality section, MIT `LICENSE`.
 
 ## Decisions
 - Only GoogleTest is fetched in step 1; GLFW/glad/GLM/stb_image/spdlog are added in the steps
@@ -97,4 +107,10 @@ cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug && cmake --build build && ctest
 - Step 7: README has placeholders for `docs/physics_playground.gif` and `docs/model_viewer.gif`
   (the user records them). Mouse orbit/zoom was not exercised by a script; Space, R, the title,
   and shader hot reload (with a deliberate error) were, on Windows/NVIDIA. The generator script of `cube.obj`/`sphere.obj` was not kept.
-- Next: step 8 (quality: clang-tidy, sanitizers, coverage). Not started.
+- Step 8: tests are not analyzed by clang-tidy (gtest macro noise). The sanitizer job runs the
+  tests only, not the samples. Coverage is lines only (no branches). GCC 15/lcov 2.4 need
+  `--ignore-errors inconsistent,...` (documented in the README).
+- Step 9: the README GIF placeholders (`docs/physics_playground.gif`, `docs/model_viewer.gif`) are
+  waiting for the author to record them.
+- All nine steps are done. Ideas listed in the README roadmap (rotation, CCD, warm starting, sRGB,
+  GPU tests, allocators) are not started.

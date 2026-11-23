@@ -2,25 +2,24 @@
 
 [![CI](https://github.com/PresetyX/cpp-game-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/PresetyX/cpp-game-engine/actions/workflows/ci.yml)
 
-A C++17 / OpenGL 3.3 game engine, built step by step as a portfolio project.
+A small C++17 / OpenGL 3.3 game engine, built step by step as a portfolio project: an ECS, a 3D
+rigid-body physics (translation only), an asset manager with hot reload, and a Blinn-Phong
+renderer, with two runnable samples. Nothing is hidden behind a framework: the modules are small
+static libraries ([architecture and dependency diagram](docs/architecture.md)).
 
-**Status: early development.** Implemented and unit-tested so far: a logger, a frame timer,
-a fixed-timestep accumulator with render interpolation, and a typed event bus (`engine/core`),
-plus an ECS with generational entity ids, sparse-set component storage and views
-(`engine/ecs`, benchmark numbers in [docs/benchmarks.md](docs/benchmarks.md)).
-Also: `engine/math` (GLM) and `engine/physics`, a 3D translation-only physics (spheres and
-axis-aligned boxes, sweep-and-prune broadphase, sequential-impulse solver with friction, triggers);
-5k bodies step in ~3 ms (see [docs/benchmarks.md](docs/benchmarks.md)).
-`engine/assets` loads images (stb_image), OBJ meshes and GLSL source text into CPU memory
-through a cached `AssetManager` with hot reload. `engine/render` is an OpenGL 3.3 core renderer
-(GLFW window, Blinn-Phong with one directional and up to 8 point lights, orbit camera, hot reload
-of shaders, meshes and textures, interpolated drawing). Two samples use it: `physics_playground`
-and `model_viewer` (see [Samples](#samples)).
+| Module | What it has |
+|---|---|
+| `engine/core` | logger, frame clock, `FixedTimestep` with render interpolation, typed `EventBus` |
+| `engine/ecs` | generational entity ids, sparse-set storage, `Registry`, views |
+| `engine/math` | GLM 1.0.1 plus `Transform`, `PreviousTransform`, `interpolate`, `Aabb` |
+| `engine/physics` | spheres and axis-aligned boxes, sweep-and-prune broadphase, sequential-impulse solver with restitution and Coulomb friction, triggers |
+| `engine/assets` | `AssetManager` (handles, ref counts, polling hot reload); images (stb_image), OBJ meshes, GLSL source |
+| `engine/render` | GLFW window, shaders, meshes, textures, Blinn-Phong `Renderer` (one directional + up to 8 point lights), orbit camera, interpolated drawing, hot reload of shaders/meshes/textures |
 
 ## Build and test
 
-Requirements: CMake >= 3.20, a C++17 compiler (GCC, Clang or MSVC) and Git.
-Dependencies are fetched automatically with CMake `FetchContent`.
+Requirements: CMake >= 3.20, a C++17 compiler (GCC, Clang or MSVC) and Git. Dependencies are
+fetched with CMake `FetchContent` (GoogleTest, GLM, GLFW, stb_image); glad is committed.
 
 ```sh
 cmake -B build
@@ -28,8 +27,21 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-To build the samples (`ENGINE_BUILD_SAMPLES`, OFF by default; running them needs an OpenGL 3.3
-driver; on Linux, `xorg-dev` and `libgl-dev` are needed to compile GLFW):
+On Windows, run it from a Developer PowerShell (or after `vcvars64.bat`); the project was
+developed with MSVC (VS Build Tools 2022) and Ninja. On Linux, compiling GLFW needs `xorg-dev` and
+`libgl-dev`.
+
+| CMake option | Default | Meaning |
+|---|---|---|
+| `ENGINE_BUILD_TESTS` | ON | unit tests (`engine_tests`) |
+| `ENGINE_BUILD_SAMPLES` | OFF | the two samples (running them needs an OpenGL 3.3 driver) |
+| `ENGINE_BUILD_BENCHMARKS` | OFF | `ecs_bench`, `physics_bench` (not run by ctest) |
+| `ENGINE_WARNINGS_AS_ERRORS` | ON | `-Werror` / `/WX` on engine targets |
+| `ENGINE_SANITIZE` | OFF | AddressSanitizer + UBSan (GCC/Clang) |
+| `ENGINE_COVERAGE` | OFF | gcov instrumentation (GCC/Clang) |
+| `ENGINE_BUILD_GPU_TESTS` | OFF | declared for tests that need a GL context; there are none yet |
+
+## Samples
 
 ```sh
 cmake -B build -DENGINE_BUILD_SAMPLES=ON && cmake --build build
@@ -37,17 +49,15 @@ cmake -B build -DENGINE_BUILD_SAMPLES=ON && cmake --build build
 ./build/samples/model_viewer/model_viewer [path/to/model.obj]
 ```
 
-## Samples
-
-Both open a 1280x720 window, use the same Blinn-Phong renderer and share the assets in
-[samples/assets](samples/assets/README.md) (origin and license of each file are listed there).
+Both open a 1280x720 window, use the same renderer and share the assets in
+[samples/assets](samples/assets/README.md) (origin and license of every file are listed there).
 Mouse and keyboard handling is sample code (`samples/common`); the engine has no input module.
 
 ### physics_playground
 
-Spheres and boxes fall and collide on a static floor. 40 bodies at the start, at most 300.
-The window title shows the number of bodies and the physics step time (mean over the last
-0.5 s, measured around `PhysicsWorld::step`).
+Spheres and boxes fall and collide on a static floor. 40 bodies at the start, at most 300. The
+window title shows the number of bodies and the physics step time (mean over the last 0.5 s,
+measured around `PhysicsWorld::step`).
 
 | Input | Action |
 |---|---|
@@ -62,9 +72,9 @@ The window title shows the number of bodies and the physics step time (mean over
 ### model_viewer
 
 Loads one OBJ through the `AssetManager` and shows it with three lights. The path is given on the
-command line and can be anywhere on disk (an absolute key bypasses the manager root); with no
-argument it shows the bundled `samples/assets/models/torus.obj`. The camera starts framed on the
-model's bounding sphere. The title shows the file name and the triangle count.
+command line and can be anywhere on disk; with no argument it shows the bundled
+`samples/assets/models/torus.obj`. The camera starts framed on the model's bounding sphere. The
+title shows the file name and the triangle count.
 
 | Input | Action |
 |---|---|
@@ -80,38 +90,83 @@ folder, not from a copy.
 
 > **Screenshot / GIF: to be added** as `docs/model_viewer.gif` (not recorded yet).
 
-## What was tested
+## What is tested
 
-- Unit tests (`ctest`, 265 in Debug / 266 in Release on MSVC) cover core, ECS, math, physics,
-  assets and the GPU-free part of the render module, including that the bundled sample model
-  loads and that `phong.frag` and the C++ light limits agree.
-- The samples were started on Windows 11 with an NVIDIA GPU (OpenGL 3.3 core): both open, the
-  physics title updates, Space adds a body, R resets, and a deliberately broken `phong.frag` is
-  logged with file and line while the old shader keeps running, then reloads when fixed. Mouse
-  orbit and wheel zoom were not exercised by a script.
+Every number below was measured; the commands to reproduce it are given. CI is GitHub Actions on
+Ubuntu (GCC and Clang, Debug and Release); the local machine is Windows 11 with MSVC.
 
-## Limitations
+| What | Result | Where / how |
+|---|---|---|
+| Unit tests | 265 (Debug) / 266 (Release) pass, MSVC `/W4 /WX` and on Linux CI with GCC and Clang | `ctest --test-dir build`; the sources are in `tests/` |
+| ASan + UBSan | the 265 Debug tests pass, no report (Clang, Linux CI) | `cmake -B build-san -DCMAKE_BUILD_TYPE=Debug -DENGINE_SANITIZE=ON`, then build and `ctest`; CI job `clang / ASan + UBSan` |
+| Line coverage | **97.3 %** (1232 of 1266 lines), functions 93.5 % (709 of 758), 38 files of `engine/`, Debug, GCC 15.2.0, lcov 2.4 (CI run on commit `215c04d`, 2026-11-23) | see below |
+| clang-tidy | 0 warnings on `engine/*/src`, `samples/*/main.cpp` and the headers of `engine/` and `samples/` (LLVM 19.1.5); three checks are disabled on purpose, with the reason in `.clang-tidy` | `clang-tidy -p build-Release $(ls engine/*/src/*.cpp samples/*/main.cpp)` |
+| Benchmarks (Windows, MSVC Release, Ryzen 7 9800X3D) | ECS update 3.5 ns/entity (100k entities); physics step median 0.46 ms (1k bodies) / 2.9 ms (5k bodies) | [docs/benchmarks.md](docs/benchmarks.md), with the machine and the commands |
+| Samples (run by hand once, Windows 11, NVIDIA GPU, OpenGL 3.3 core) | both start; the physics title updates; Space adds a body; R resets; a deliberately broken `phong.frag` is logged with file and line while the old shader keeps running, and the fixed file reloads; replacing the OBJ of a running `model_viewer` reloads it (title went from 1024 to 12 triangles; the redraw itself was not inspected) | not automated; mouse orbit and wheel zoom were not exercised by a script |
 
-- No sRGB: textures and the framebuffer are linear, so lighting looks harsher than gamma-correct
-  output.
-- Linux is only compiled, never run (CI: GCC and Clang on Ubuntu, samples built with
-  `ENGINE_BUILD_SAMPLES=ON`, not executed). macOS is not built anywhere. The samples were run on
-  Windows only.
-- No test opens a window: the `engine_render` module (window, GL objects, `Renderer`) is covered
-  by the manual run above, not by automated tests (`ENGINE_BUILD_GPU_TESTS` is declared but empty).
-- No shadows, PBR, instancing or frustum culling; one draw call per entity, at most 8 point lights.
-- OBJ: no materials (`mtllib` is ignored); `model_viewer` draws one flat color.
-- Physics is translation-only (no rotation), spheres and axis-aligned boxes. See
-  [docs/architecture.md](docs/architecture.md) for the limits of each module.
+Coverage, as computed in CI (on Linux; the job is `gcc / line coverage` in
+[ci.yml](.github/workflows/ci.yml)):
+
+```sh
+cmake -B build-cov -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENGINE_COVERAGE=ON
+cmake --build build-cov && ctest --test-dir build-cov
+IGN="--ignore-errors mismatch,inconsistent,unused,negative,count --rc branch_coverage=0"
+lcov --capture --directory build-cov --output-file all.info $IGN
+lcov --extract all.info "$PWD/engine/*" --output-file engine.info $IGN
+lcov --summary engine.info $IGN
+```
+
+What the 97.3 % does and does not cover: it counts the `engine/` files that the test binary
+links. `engine_render` (`Window`, GL objects, `Renderer`) is not linked into the tests, so it is
+not in the figure and its coverage is effectively zero; that is the "no test opens a window"
+limitation below. The render logic that is testable without a GPU (cameras, draw list,
+light packing, shader log parsing, `UploadCache`) is in the figure. The `--ignore-errors`
+list is there because GCC 15 and GoogleTest produce line records that lcov 2.x flags as
+"inconsistent"; lcov reports them as warnings and the totals above are computed with them ignored.
+The figure is line coverage; branch coverage was not measured.
+
+## Known limitations
+
+- **No sRGB.** Textures and the framebuffer are linear, so lighting is not gamma-correct.
+- **Physics is translation only: no rotation.** Boxes are axis-aligned in world space.
+- **No continuous collision detection (CCD).** Fast or thin bodies can tunnel through others; there
+  is no test that measures it, it is simply not implemented.
+- **Tall stacks are not rigid.** The solver has no warm starting and does a fixed 10 iterations. A
+  stack of 3 boxes settles with the bottom box about 2.9 cm into the floor and a residual vertical
+  speed up to about 1 cm/s (measured in `World.SmallBoxStackIsStable`); taller stacks were not
+  measured and converge more slowly. No sleeping.
+- **Linux and macOS: the samples never run.** The unit tests run on Linux in CI, and the samples are
+  compiled there (`ENGINE_BUILD_SAMPLES=ON`), but nothing has executed them. macOS is not built
+  anywhere. The samples were run on Windows with one NVIDIA GPU only; Mesa and Intel/AMD shader
+  log formats are covered only by text fixtures.
+- **No test opens a window.** `engine_render` has no automated test (`ENGINE_BUILD_GPU_TESTS` is
+  declared but empty); it was checked by hand as described above.
+- Rendering: no shadows, PBR, instancing or frustum culling; one draw call per entity; at most 8
+  point lights. OBJ: materials (`mtllib`) are ignored, so `model_viewer` draws one flat color.
+- Assets are loaded synchronously and hot reload polls file times (no file-watch events).
+- Not implemented: simple allocators (planned under `core/`), a real input module, Wayland.
+- `EntityPool` slot retirement after 2^32 generations is untested (it would need 2^32 cycles).
+- Benchmarks were measured on Windows/MSVC only.
 
 ## Roadmap
 
+Done (details in [PROGRESS.md](PROGRESS.md) and [docs/architecture.md](docs/architecture.md)):
+
 - [x] 1. Project skeleton and CI
-- [x] 2. Core (logger, fixed-timestep loop, events; simple allocators still pending)
+- [x] 2. Core (logger, fixed-timestep loop, events)
 - [x] 3. ECS
 - [x] 4. Math and physics
 - [x] 5. Assets
 - [x] 6. Render
 - [x] 7. Samples
-- [ ] 8. Quality (clang-tidy, sanitizers, coverage)
-- [ ] 9. Documentation
+- [x] 8. Quality (clang-tidy, sanitizers, coverage)
+- [x] 9. Documentation
+
+Not planned yet, in no particular order: rotation and a box-box manifold with torque, warm
+starting and sleeping, CCD, sRGB, GPU tests with a headless context, simple allocators, GIFs of
+the samples (`docs/*.gif`).
+
+## License
+
+MIT, see [LICENSE](LICENSE). The sample assets are listed in
+[samples/assets/README.md](samples/assets/README.md).

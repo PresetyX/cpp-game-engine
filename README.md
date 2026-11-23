@@ -125,6 +125,38 @@ list is there because GCC 15 and GoogleTest produce line records that lcov 2.x f
 "inconsistent"; lcov reports them as warnings and the totals above are computed with them ignored.
 The figure is line coverage; branch coverage was not measured.
 
+## Design decisions
+
+The longer reasoning, with the alternatives that were rejected, is in
+[docs/architecture.md](docs/architecture.md). The short version:
+
+- **Modules are static libraries, and GPU-free logic never links the renderer.** `engine_tests`
+  does not link `render`, so no test opens a window. The price is that the GL code is only
+  checked by hand (see the limitations below).
+- **Fixed timestep driven by an accumulator that never reads a clock.** `FixedTimestep` receives
+  the frame time from the caller, so tests can replay exact sequences. Frame time is clamped
+  (0.25 s by default) so a long stall slows the simulation instead of causing a catch-up spiral;
+  rendering interpolates with `alpha()`.
+- **ECS on sparse sets, not archetypes.** Add and remove are O(1) and there are no table moves,
+  at the cost of multi-component views checking membership against the smallest pool and of one
+  entity's components not being adjacent in memory.
+- **Generational 32 + 32 bit entity ids.** A packed 20/12 bit handle was rejected because 4096
+  reuses of a slot would wrap the generation and revive stale handles.
+- **Physics is translation only, solved with sequential impulses.** Without rotation there is no
+  torque, so one contact point per pair is exact. The solver has no warm starting (10 fixed
+  iterations), which is why tall stacks are not rigid. Pair order is canonical, so a run is
+  repeatable bit for bit on the same build and platform, but not guaranteed across compilers.
+- **Position correction is a direct projection that does not touch velocities,** so it adds no
+  energy; restitution applies only above a closing speed of 1 m/s so resting contacts do not
+  jitter.
+- **Dependencies on demand, pinned.** Only what existing modules use is fetched, each pinned by
+  tag or by URL plus SHA-256. The logger is in-house to avoid one more dependency.
+- **Hot reload keyed on asset version.** The renderer re-uploads only what has a different
+  version, and a shader that fails to recompile is logged with file and line while the old
+  program keeps running, with no retry until the file changes.
+- **Limits that exist in two places are tested against each other.** `kMaxPointLights` is
+  duplicated in `phong.frag`, and a test reads the shader and fails if the two differ.
+
 ## Known limitations
 
 - **No sRGB.** Textures and the framebuffer are linear, so lighting is not gamma-correct.

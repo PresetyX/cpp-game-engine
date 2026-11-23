@@ -1,6 +1,63 @@
 # Architecture
 
-Work in progress; sections are added as modules are implemented.
+## Modules and dependencies
+
+Each module is a static library (`math` is header-only) with an `engine::<name>` alias. Arrows
+point from a module to what it links (taken from the `target_link_libraries` calls; a module
+only includes headers of the modules it links).
+
+```mermaid
+graph TD
+    subgraph third["third party"]
+        glm["GLM"]
+        stb["stb_image"]
+        glad["glad (committed)"]
+        glfw["GLFW"]
+        gtest["GoogleTest"]
+    end
+
+    subgraph eng["engine/ (GPU-free, covered by the unit tests)"]
+        core["core<br/>log, clock, FixedTimestep, EventBus"]
+        ecs["ecs<br/>Registry, SparseSet, View"]
+        math["math (header-only)<br/>Transform, Aabb"]
+        physics["physics<br/>broad/narrowphase, solver"]
+        assets["assets<br/>Image, Mesh, ShaderSource, AssetManager"]
+        rcore["render_core<br/>cameras, draw list, lights, UploadCache"]
+    end
+
+    subgraph gpu["engine/ (needs OpenGL, never run by CI)"]
+        render["render<br/>Window, GL objects, Renderer"]
+    end
+
+    math --> glm
+    physics --> ecs
+    physics --> math
+    assets --> core
+    assets --> math
+    assets --> stb
+    rcore --> assets
+    rcore --> core
+    rcore --> ecs
+    rcore --> math
+    render --> rcore
+    render --> glad
+    render --> glfw
+
+    tests["tests (engine_tests)"] --> core
+    tests --> ecs
+    tests --> math
+    tests --> physics
+    tests --> assets
+    tests --> rcore
+    tests --> gtest
+
+    samples["samples<br/>physics_playground, model_viewer"] --> render
+    samples --> physics
+    samples --> assets
+```
+
+`core` and `ecs` depend on no other module. `samples` also link `ecs`, `core` and `math`
+directly. `engine_tests` does not link `render`, which is why no test opens a window.
 
 ## Decisions
 
@@ -307,3 +364,18 @@ with `clamp(1 - (d/range)^2, 0, 1)^2`.
   (drawn at its `Transform`, no interpolation needed). It calls `reload_changed()` once per
   second and refreshes the title when the mesh `version()` changes; the camera is not reframed on
   reload.
+
+## Quality
+
+- **Warnings:** `-Wall -Wextra -Wpedantic -Werror` (MSVC `/W4 /WX`) on every engine target.
+- **clang-tidy** (`.clang-tidy`, LLVM 19.1.5 from the VS Build Tools): run on `engine/*/src/*.cpp`
+  and `samples/*/main.cpp` with a compile database, headers of `engine/` and `samples/` included
+  (`HeaderFilterRegex`). Result after the step 8 fixes: 0 warnings. Disabled checks and the reason
+  for each are commented in `.clang-tidy`. The tests are not analyzed (gtest macros make the
+  output noisy); third-party code never is.
+- **Sanitizers:** `-DENGINE_SANITIZE=ON` adds `-fsanitize=address,undefined` with no recovery, so
+  the first report fails the test. CI job `clang / ASan + UBSan` (Debug) runs the full `ctest`.
+- **Coverage:** `-DENGINE_COVERAGE=ON` (`--coverage`, `-O0`). CI job `gcc / line coverage` runs
+  `ctest`, then `lcov`, and keeps only `engine/`. The files of `engine_render` (window, GL
+  objects, `Renderer`) are not linked into the test binary and are not part of the figure; the
+  README has the number and the exact commands.

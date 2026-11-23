@@ -77,7 +77,7 @@ No bodies sleep and there is no warm starting, so every body costs the same each
 ```powershell
 cmake -B build-bench -G Ninja -DCMAKE_BUILD_TYPE=Release -DENGINE_BUILD_BENCHMARKS=ON -DENGINE_BUILD_TESTS=OFF
 cmake --build build-bench --target physics_bench
-build-benchenchmarks\physics_bench.exe
+build-bench\benchmarks\physics_bench.exe
 ```
 
 ### Machine

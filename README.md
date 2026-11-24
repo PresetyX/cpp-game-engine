@@ -198,6 +198,10 @@ Not planned yet, in no particular order: rotation and a box-box manifold with to
 starting and sleeping, CCD, sRGB, GPU tests with a headless context, simple allocators, GIFs of
 the samples (`docs/*.gif`).
 
+## Development history
+
+This project was developed locally between 2025-11-26 and 2026-11-23. The commit history was created afterwards, and the commit dates were adjusted to match the period in which the work was actually done.
+
 ## License
 
 MIT, see [LICENSE](LICENSE). The sample assets are listed in

@@ -1,3 +1,5 @@
+🌐 **English** | [Português (BR)](README.pt-BR.md)
+
 # cpp-game-engine
 
 [![CI](https://github.com/PresetyX/cpp-game-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/PresetyX/cpp-game-engine/actions/workflows/ci.yml)
